@@ -5,7 +5,210 @@ date: "12/1/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+STSCI 4740 Fall 2020 Final Project
+Emily Weed
+
+Notes for me: follow structure/examples from textbook, problem 10,11,13 on pages 171-173. 
+
+#Section I: Introduction
+
+  The goal of this project is to predict the cancer level using the features provided to us in the data set. The cancer level is encoded as ordinal data taking the values 'Low', 'Medium', and 'High'. There are 24 features in the data set such as 'Age', 'Alcohol Use', 'Obesity' and 1000 rows. This is a classification problem because the target variable, cancer level, is categorical. I will start by exploring and cleaning (if needed) the data then segway into feature selection and begin to explore some models.  
+
+
+#Section II: Data Exploration
+
+  I will start by constructing some graphs, visualizations and summary statistics for the columns to get a better idea of the structure of the data set.
+  
+  
+
+
+```{r}
+df = read.csv('cancer_data.csv')
+head(df)
 ```
+```{r}
+summary(df)
+```
+From the summary of the data set we can see there are 24 features. Age seems to be the only continuous variable, Gender is categorical with gender 1 and gender 2 and all the rest are ordinal variables. We also have a Patient.Id variable which is just an unique identifier for each patient thus I suspect it will not be entirely useful. 
+
+Let's see if there are any missing values in the data set
+```{r}
+sapply(df, function(x) {sum(is.na(x))})
+```
+There is not so I will not have to deal with any imputation of missing values. 
+
+First let's look at the target variable to see if the proportion of each level is roughly equal.
+```{r}
+ggplot(df,aes(Level)) + geom_bar()
+```
+The bars are of roughly equal height so we will not have to deal with accounting for unproportional categories in our data set. 
+
+Let's make some visualizations to get a sense for the distribution of each variable.
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+p1 = ggplot(df,aes(Snoring)) + geom_bar()
+p2 = ggplot(df,aes(Dry.Cough)) + geom_bar()
+p3 = ggplot(df,aes(Frequent.Cold)) + geom_bar()
+p4 = ggplot(df,aes(Clubbing.of.Finger.Nails)) + geom_bar()
+p5 = ggplot(df,aes(Swallowing.Difficulty)) + geom_bar()
+p6 = ggplot(df,aes(Wheezing)) + geom_bar()
+p7 = ggplot(df,aes(Shortness.of.Breath)) + geom_bar()
+p8 = ggplot(df,aes(Weight.Loss)) + geom_bar()
+p9 = ggplot(df,aes(Fatigue)) + geom_bar()
+p10 = ggplot(df,aes(Coughing.of.Blood)) + geom_bar()
+p11 = ggplot(df,aes(Chest.Pain)) + geom_bar()
+p12 = ggplot(df,aes(Passive.Smoker)) + geom_bar()
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12)
+```
+
+    
+
+```{r}
+p13 = ggplot(df,aes(Smoking)) + geom_bar()
+p14 = ggplot(df,aes(Obesity)) + geom_bar()
+p15 = ggplot(df,aes(Balanced.Diet)) + geom_bar()
+p16 = ggplot(df,aes(chronic.Lung.Disease)) + geom_bar()
+p17 = ggplot(df,aes(Genetic.Risk)) + geom_bar()
+p18 = ggplot(df,aes(OccuPational.Hazards)) + geom_bar()
+p19 = ggplot(df,aes(Dust.Allergy)) + geom_bar()
+p20 = ggplot(df,aes(Alcohol.use)) + geom_bar()
+p21 = ggplot(df,aes(Air.Pollution)) + geom_bar()
+
+grid.arrange(p13,p14,p15,p16,p17,p18,p19,p20,p21)
+```
+
+All the plots look relatively normal. There aren't any that are heavily skewed left or right. Smoking appears to be bimodal, peaking at both 2 and 7 which is interesting to note. Dust.Allergy, Occupational.Hazards, and chronic.Lung.Disease all have a large number of values at the higher levels (6/7). 
+
+Now let's visualize some of the variables' relationships with Level
+
+```{r}
+b1 = ggplot(df,aes(x=Level,y=Smoking)) + geom_boxplot()
+b2 = ggplot(df,aes(x=Level,y=Obesity)) + geom_boxplot()
+b3 = ggplot(df,aes(x=Level,y=Alcohol.use)) + geom_boxplot()
+b4 = ggplot(df,aes(x=Level,y=Chest.Pain)) + geom_boxplot()
+grid.arrange(b1,b2,b3,b4)
+```
+
+We can see from these box plots that there are some outlier values within each Level for each variable. For example in Chest.Pain for Level "High" the majority of the patients have Chest.Pain value 7 while there are 3 outliers with values around 8,4,and 2. In Alcohol.Use, for Level "Medium" the patients seems have very normally distributed values of Alcohol.Use. 
+
+Looking at the gender breakdown within levels we can see that more than 50% of the people with level "High" are gender 1, similarly for level "Medium". For level "Low" it looks to be about even.
+```{r}
+df$Gender = factor(df$Gender)
+ggplot(df, aes(x = Level, fill = Gender)) +
+  geom_bar(stat='count', position='stack') +
+  labs(x = 'Level colored by Gender')
+```
+
+
+#Section III: Data Cleaning/Manipulation
+
+
+I will start by converting the Level to an ordinal variable with levels "Low"<"Medium"<"High" (ordered factor variable)
+```{r}
+df$Level = factor(df$Level,ordered = TRUE, levels = c("Low","Medium","High"))
+```
+
+Looking at the other variables, they seem to also be ordinal variables with the exception of Age and Gender. I will convert Gender to a categorical variable. Age is already correctly encoded an int.
+
+I will then convert all the other variables, "Air.Pollution" "Alcohol.use" "Dust.Allergy" "OccuPational.Hazards" "Genetic.Risk" "chronic.Lung.Disease" "Balanced.Diet" "Obesity" "Smoking" "Passive.Smoker" "Chest.Pain" "Coughing.of.Blood" "Fatigue" "Weight.Loss" "Shortness.of.Breath" "Wheezing" "Swallowing.Difficulty" "Clubbing.of.Finger.Nails" "Frequent.Cold" "Dry.Cough" "Snoring", to ordinal variables with their respective levels (ordered factor variables)
+```{r}
+df$Gender = factor(df$Gender)
+df$Air.Pollution=factor(df$Air.Pollution,ordered = TRUE)
+df$Alcohol.use =factor(df$Alcohol.use ,ordered = TRUE)
+df$Dust.Allergy =factor(df$Dust.Allergy ,ordered = TRUE)
+df$OccuPational.Hazards =factor(df$OccuPational.Hazards ,ordered = TRUE)
+df$Genetic.Risk =factor(df$Genetic.Risk ,ordered = TRUE)
+df$chronic.Lung.Disease =factor(df$chronic.Lung.Disease ,ordered = TRUE)
+df$Balanced.Diet =factor(df$Balanced.Diet ,ordered = TRUE)
+df$Obesity =factor(df$Obesity ,ordered = TRUE)
+df$Smoking =factor(df$Smoking ,ordered = TRUE)
+df$Passive.Smoker =factor(df$Passive.Smoker ,ordered = TRUE)
+df$Chest.Pain =factor(df$Chest.Pain ,ordered = TRUE)
+df$Coughing.of.Blood =factor(df$Coughing.of.Blood ,ordered = TRUE)
+df$Fatigue =factor(df$Fatigue ,ordered = TRUE)
+df$Weight.Loss =factor(df$Weight.Loss ,ordered = TRUE)
+df$Shortness.of.Breath =factor(df$Shortness.of.Breath ,ordered = TRUE)
+df$Wheezing =factor(df$Wheezing ,ordered = TRUE)
+df$Swallowing.Difficulty =factor(df$Swallowing.Difficulty ,ordered = TRUE)
+df$Clubbing.of.Finger.Nails =factor(df$Clubbing.of.Finger.Nails ,ordered = TRUE)
+df$Frequent.Cold =factor(df$Frequent.Cold ,ordered = TRUE)
+df$Dry.Cough =factor(df$Dry.Cough ,ordered = TRUE)
+df$Snoring =factor(df$Snoring ,ordered = TRUE)
+```
+
+```{r}
+str(df)
+```
+
+#Section IV: Feature Selection
+
+I will start by looking at the correlation matrix of the data set. I want to select features that have a high correlation with Level but do not want to select features that are highly correlated with eachother as they will be redundant.
+```{r}
+library(corrplot)
+df2 = sapply(df,as.numeric)
+c = cor(df2 , method = c("spearman"))
+corrplot(c,tl.cex = 0.6)
+```
+Based on this plot we can see that some variables have very little if any correlation with Level. For example Age, Gender, Wheezing, Swallowing.Difficulty, Clubbing.Of.Finger.Nails, Dry.cough, and Snoring have a very small correlation coefficient with Level so most likely they will not be very helpful in predicting Level. 
+
+I am going to drop these variables as well as PatientID (since it is just a unique identifier for each patient and thus is different for every row). I will then asses the importance of my remaining variables using Random Forest to select a smaller, more helpful set of features.
+
+```{r}
+head(df)
+```
+
+```{r}
+df = subset(df, select=-c(Patient.Id, Age, Gender, Wheezing, Swallowing.Difficulty, Clubbing.of.Finger.Nails, Dry.Cough, Snoring))
+head(df)
+```
+
+Using variable importance through Random Forest
+```{r}
+library(randomForest)
+rf.fit = randomForest(Level~.,data=df)
+importance(rf.fit)
+```
+We want to select variables for which the MeanDecreaseGini is highest.
+
+#Section V: Model Construction
+
+
+First I will split my data set into train and test sets. I will use a 80/20 split for the train test split. In this section I will train the three models I plan to investigate.  I will use 5 fold cross validation on my training set. This will allow me to assess which model will be the most likely to preform the best on the test set in my next section, Model Selection and Evaluation.  
+
+```{r}
+sample_size = floor(0.8* nrow(df))
+
+train_index = sample.int(n = nrow(df), size = sample_size)
+
+train = df[train_index,]
+test = df[-train_index,]
+```
+
+I will use a couple different models to attempt to best predict Level.
+
+##Section V.1: Linear Discrimminant Analysis
+
+
+I'll start by using all the features to predict 'Level'
+```{r}
+#library(MASS)
+#lda.fit = lda(Level ~., data = train)
+#lda.fit
+```
+
+
+##Section V.1: Quadratic Discrimminant Analysis
+
+##Section V.1: K Nearest Neighbour
+
+
+#Section VI: Model Selection and Evaluation
+
+
+
+#Section VII: Conclusion
+
+
 
