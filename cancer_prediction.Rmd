@@ -2,13 +2,14 @@
 title: "Cancer_prediction"
 author: "emw232"
 date: "12/1/2020"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 STSCI 4740 Fall 2020 Final Project
 Emily Weed
 
-Notes for me: follow structure/examples from textbook, problem 10,11,13 on pages 171-173. 
 
 #Section I: Introduction
 
@@ -18,8 +19,6 @@ Notes for me: follow structure/examples from textbook, problem 10,11,13 on pages
 #Section II: Data Exploration
 
   I will start by constructing some graphs, visualizations and summary statistics for the columns to get a better idea of the structure of the data set.
-  
-  
 
 
 ```{r}
@@ -29,7 +28,7 @@ head(df)
 ```{r}
 summary(df)
 ```
-From the summary of the data set we can see there are 24 features. Age seems to be the only continuous variable, Gender is categorical with gender 1 and gender 2 and all the rest are ordinal variables. We also have a Patient.Id variable which is just an unique identifier for each patient thus I suspect it will not be entirely useful. 
+From the summary of the data set we can see there are 24 features. Gender is categorical with gender 1 and gender 2 and all the rest are ints. We also have a Patient.Id variable which is just an unique identifier for each patient thus I suspect it will not be entirely useful. 
 
 Let's see if there are any missing values in the data set
 ```{r}
@@ -39,6 +38,7 @@ There is not so I will not have to deal with any imputation of missing values.
 
 First let's look at the target variable to see if the proportion of each level is roughly equal.
 ```{r}
+library(ggplot2)
 ggplot(df,aes(Level)) + geom_bar()
 ```
 The bars are of roughly equal height so we will not have to deal with accounting for unproportional categories in our data set. 
@@ -63,7 +63,6 @@ p12 = ggplot(df,aes(Passive.Smoker)) + geom_bar()
 grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12)
 ```
 
-    
 
 ```{r}
 p13 = ggplot(df,aes(Smoking)) + geom_bar()
@@ -79,9 +78,9 @@ p21 = ggplot(df,aes(Air.Pollution)) + geom_bar()
 grid.arrange(p13,p14,p15,p16,p17,p18,p19,p20,p21)
 ```
 
-All the plots look relatively normal. There aren't any that are heavily skewed left or right. Smoking appears to be bimodal, peaking at both 2 and 7 which is interesting to note. Dust.Allergy, Occupational.Hazards, and chronic.Lung.Disease all have a large number of values at the higher levels (6/7). 
+All the plots look relatively reasonable. Some are skewed left or right but none cause major concern for the reliability of the data. Smoking appears to be bimodal, peaking at both 2 and 7 which is interesting to note. Dust.Allergy, Occupational.Hazards, and chronic.Lung.Disease all have a large number of values at the higher levels (6/7) - skewed left. 
 
-Now let's visualize some of the variables' relationships with Level
+Now let's visualize some of the variables' relationships with Level, our target variable
 
 ```{r}
 b1 = ggplot(df,aes(x=Level,y=Smoking)) + geom_boxplot()
@@ -91,7 +90,7 @@ b4 = ggplot(df,aes(x=Level,y=Chest.Pain)) + geom_boxplot()
 grid.arrange(b1,b2,b3,b4)
 ```
 
-We can see from these box plots that there are some outlier values within each Level for each variable. For example in Chest.Pain for Level "High" the majority of the patients have Chest.Pain value 7 while there are 3 outliers with values around 8,4,and 2. In Alcohol.Use, for Level "Medium" the patients seems have very normally distributed values of Alcohol.Use. 
+We can see from these box plots that there are some outlier values within each Level for each variable. For example in Chest.Pain for Level "High" the majority of the patients have Chest.Pain value 7 while there are 3 outliers with values around 8,4,and 2. In Alcohol.Use, for Level "Medium" the patients seems have very normally distributed values of Alcohol.Use. The box plots in general have small interquartile ranges. Overall these box plots seemed to be pretty condensed, with each level mostly occupying a small, certain range of values in each variable.  
 
 Looking at the gender breakdown within levels we can see that more than 50% of the people with level "High" are gender 1, similarly for level "Medium". For level "Low" it looks to be about even.
 ```{r}
@@ -110,34 +109,13 @@ I will start by converting the Level to an ordinal variable with levels "Low"<"M
 df$Level = factor(df$Level,ordered = TRUE, levels = c("Low","Medium","High"))
 ```
 
-Looking at the other variables, they seem to also be ordinal variables with the exception of Age and Gender. I will convert Gender to a categorical variable. Age is already correctly encoded an int.
+Looking at the other variables, they seem to also be ordinal variables with the exception of Age and Gender. We have not really gone over in class how to deal with a scenario with all ordinal factor predictor variables so I will keep them all as continuous int variables (as they are right now). This was also confirmed as a possible approach on Piazza by Professor Ning. I will convert Gender to a categorical variable. Age is already correctly encoded an int.
 
-I will then convert all the other variables, "Air.Pollution" "Alcohol.use" "Dust.Allergy" "OccuPational.Hazards" "Genetic.Risk" "chronic.Lung.Disease" "Balanced.Diet" "Obesity" "Smoking" "Passive.Smoker" "Chest.Pain" "Coughing.of.Blood" "Fatigue" "Weight.Loss" "Shortness.of.Breath" "Wheezing" "Swallowing.Difficulty" "Clubbing.of.Finger.Nails" "Frequent.Cold" "Dry.Cough" "Snoring", to ordinal variables with their respective levels (ordered factor variables)
 ```{r}
 df$Gender = factor(df$Gender)
-df$Air.Pollution=factor(df$Air.Pollution,ordered = TRUE)
-df$Alcohol.use =factor(df$Alcohol.use ,ordered = TRUE)
-df$Dust.Allergy =factor(df$Dust.Allergy ,ordered = TRUE)
-df$OccuPational.Hazards =factor(df$OccuPational.Hazards ,ordered = TRUE)
-df$Genetic.Risk =factor(df$Genetic.Risk ,ordered = TRUE)
-df$chronic.Lung.Disease =factor(df$chronic.Lung.Disease ,ordered = TRUE)
-df$Balanced.Diet =factor(df$Balanced.Diet ,ordered = TRUE)
-df$Obesity =factor(df$Obesity ,ordered = TRUE)
-df$Smoking =factor(df$Smoking ,ordered = TRUE)
-df$Passive.Smoker =factor(df$Passive.Smoker ,ordered = TRUE)
-df$Chest.Pain =factor(df$Chest.Pain ,ordered = TRUE)
-df$Coughing.of.Blood =factor(df$Coughing.of.Blood ,ordered = TRUE)
-df$Fatigue =factor(df$Fatigue ,ordered = TRUE)
-df$Weight.Loss =factor(df$Weight.Loss ,ordered = TRUE)
-df$Shortness.of.Breath =factor(df$Shortness.of.Breath ,ordered = TRUE)
-df$Wheezing =factor(df$Wheezing ,ordered = TRUE)
-df$Swallowing.Difficulty =factor(df$Swallowing.Difficulty ,ordered = TRUE)
-df$Clubbing.of.Finger.Nails =factor(df$Clubbing.of.Finger.Nails ,ordered = TRUE)
-df$Frequent.Cold =factor(df$Frequent.Cold ,ordered = TRUE)
-df$Dry.Cough =factor(df$Dry.Cough ,ordered = TRUE)
-df$Snoring =factor(df$Snoring ,ordered = TRUE)
 ```
 
+Looking at the data types to confirm everything is as it should be
 ```{r}
 str(df)
 ```
@@ -148,7 +126,7 @@ I will start by looking at the correlation matrix of the data set. I want to sel
 ```{r}
 library(corrplot)
 df2 = sapply(df,as.numeric)
-c = cor(df2 , method = c("spearman"))
+c = cor(df2)
 corrplot(c,tl.cex = 0.6)
 ```
 Based on this plot we can see that some variables have very little if any correlation with Level. For example Age, Gender, Wheezing, Swallowing.Difficulty, Clubbing.Of.Finger.Nails, Dry.cough, and Snoring have a very small correlation coefficient with Level so most likely they will not be very helpful in predicting Level. 
@@ -158,7 +136,7 @@ I am going to drop these variables as well as PatientID (since it is just a uniq
 ```{r}
 head(df)
 ```
-
+Dropping said features
 ```{r}
 df = subset(df, select=-c(Patient.Id, Age, Gender, Wheezing, Swallowing.Difficulty, Clubbing.of.Finger.Nails, Dry.Cough, Snoring))
 head(df)
@@ -170,7 +148,13 @@ library(randomForest)
 rf.fit = randomForest(Level~.,data=df)
 importance(rf.fit)
 ```
-We want to select variables for which the MeanDecreaseGini is highest.
+We want to select variables for which the MeanDecreaseGini is highest. Looking at these values we can see that these features have high importance: Coughing.of.Blood (95.806), Obesity (90.635), Passive.Smoker (76.982), and Fatigue (66.282). After this the importance value drops off into the 40s and below, thus I will now proceed with these features to use for model construction. 
+
+```{r}
+df = subset(df, select=c(Coughing.of.Blood,Obesity,Passive.Smoker,Fatigue,Level))
+head(df)
+```
+
 
 #Section V: Model Construction
 
@@ -188,27 +172,160 @@ test = df[-train_index,]
 
 I will use a couple different models to attempt to best predict Level.
 
-##Section V.1: Linear Discrimminant Analysis
+##Section V.I: Linear Discrimminant Analysis
 
+First I will use LDA with 5-fold cross validation. In LDA, it models the distribution of each of the parameters in each of the classes separately. Using Bayes' Theorem, it flips it around and obtains a probability that a certain example is in a class given the feature values, assigning whichever class has the highest probability. It is usually assumed that the distribution of the features in each of the classes follows a multivariate normal distribution with a convariance matrix in common across the classes. This assumption may be a little too strong for our data set here but I will construct this model acknowledging this. 
 
-I'll start by using all the features to predict 'Level'
 ```{r}
-#library(MASS)
-#lda.fit = lda(Level ~., data = train)
-#lda.fit
+library(MASS)
+folds <- rep_len(1:5, nrow(train)) #Creating the folds
+lst = c()
+
+for(k in 1:5) {
+    fold =  which(folds == k)
+    train_k <- train[-fold,] #getting train set for fold k
+    validation_k <- train[fold,] #getting validation set for fold k
+    
+    lda.fit = lda(Level~., data=train_k) #fitting the LDA model using all the predictors we selected earlier
+
+    predictions_k = predict(lda.fit, validation_k) #constructing predictions on the validation set
+    validation_set_error_k = mean(as.character(validation_k$Level) != as.character(predictions_k$class)) # Must do this because Level     is encoded as an ordinal factor and it cannot be compared directy
+
+    print(validation_set_error_k)
+    lst = c(lst,validation_set_error_k)
+}
+```
+```{r}
+print(mean(lst)) #Finding the mean of the misclassification errors
+```
+
+The average missclassification rate for LDA is 0.17625 which is not too bad. Let's see if our other models can preform better
+
+
+
+##Section V.II: Quadratic Discrimminant Analysis
+
+I will next do QDA, with 5-fold cross validation again. QDA is similar to LDA in that they both assume the predictors for each class are drawn from multivariate normal distributions, and use Bayes' Theorem to make predictions. Where they differ is with the covariance matrix. QDAs assume different covariance matrices in each class, giving the model more flexibility. The QDA decision boundary does not have to be linear. 
+```{r}
+folds <- rep_len(1:5, nrow(train)) #creating the folds
+lst = c()
+for(k in 1:5) {
+
+    fold =  which(folds == k)
+    train_k <- train[-fold,] #getting train set for fold k
+    validation_k <- train[fold,] #getting validation set for fold k
+    
+    qda.fit = qda(Level~., data=train_k) #fitting the qda using all the features we previously defined
+
+    predictions_k = predict(qda.fit, validation_k)
+    validation_set_error_k = mean(as.character(validation_k$Level) != as.character(predictions_k$class)) # Must do this because Level is encoded as an ordinal factor and it cannot be compare directy
+
+    print(validation_set_error_k)
+    lst = c(lst,validation_set_error_k)
+}
+
+
+```
+
+```{r}
+print(mean(lst)) #getting average misclassification error
+```
+The average misclassification rate for QDA is 0.1175. This is lower than the one for LDA indicating that the flexibility of QDA served to improve our preformance here
+
+
+##Section V.III: K Nearest Neighbours
+
+Now I will do KNN with 5-fold cross validation. The KNN classifier uses the k closest points to a test point and determines the conditional probability of a certain class, x, as the proportion of those points k points whose class label is k. Using Bayes' rule, it classifies the test point to the class with the highest probability. This is a very different approach than LDA and QDA. There are no assumptions being made. With this model we do, however, have to define the value of k we want to use. To attack choosing this extra hyperparamter, I will run 4 different KNN models within each fold, each with a different number of neighbours. This will help me determine the best value for the number of neighbours to use for this method.
+
+```{r}
+# Separating out the features and the target variable
+train_x = train[c("Coughing.of.Blood","Obesity","Passive.Smoker","Fatigue")]
+
+train_y = train[c("Level")]
+
 ```
 
 
-##Section V.1: Quadratic Discrimminant Analysis
+```{r}
+library(class)
+folds <- rep_len(1:5, nrow(train)) #creating the folds
 
-##Section V.1: K Nearest Neighbour
+lst5 = c()
+lst10 = c()
+lst50 = c()
+lst100 = c()
+for(k in 1:5) {
 
+    fold =  which(folds == k)
+    train_x_k = train_x[-fold,] #getting our train and validate sets for fold k
+    validation_x_k = train_x[fold,]
+    train_y_k = train_y[-fold,]
+    validation_y_k = train_y[fold,]
+    
+    predict.knn_5 = knn(train_x_k, validation_x_k,train_y_k, k = 5) #constructing our models with the different ks
+    predict.knn_10 = knn(train_x_k, validation_x_k,train_y_k, k = 10)
+    predict.knn_50 = knn(train_x_k, validation_x_k,train_y_k, k = 50)
+    predict.knn_100 = knn(train_x_k, validation_x_k,train_y_k, k = 100)
+    
+    validation_set_error_5 =  mean(as.character(validation_y_k) != as.character(predict.knn_5)) #getting the misclassification rate
+    validation_set_error_10 =  mean(as.character(validation_y_k) != as.character(predict.knn_10))
+    validation_set_error_50 =  mean(as.character(validation_y_k) != as.character(predict.knn_50))
+    validation_set_error_100 =  mean(as.character(validation_y_k) != as.character(predict.knn_100))
+
+    lst5 = c(lst5,validation_set_error_5)
+    lst10 = c(lst10,validation_set_error_10)
+    lst50 = c(lst50,validation_set_error_50)
+    lst100 = c(lst100,validation_set_error_100)}
+```
+
+```{r}
+
+cat("\nAverage misclassification rate for k = 5: ", mean(lst5)) #getting the average misclassification rate for each value of k
+cat("\nAverage misclassification rate for k = 10: ", mean(lst10))
+cat("\nAverage misclassification rate for k = 50: ", mean(lst50))
+cat("\nAverage misclassification rate for k = 100: ", mean(lst100))
+```
+
+The average misclassification rate was the lowest for k = 5 here at 0.01375. This misclassification rate was lower than LDA's and QDA's
 
 #Section VI: Model Selection and Evaluation
 
+In order to decide which model preformed the best on my data, I can compared the average misclassification rates I obtained in the previous part
 
+LDA: 0.17625
+
+QDA: 0.1175
+
+KNN: 0.01375 (for k = 5)
+
+We can see that they are very similar for LDA and QDA however it improved for KNN. I will use KNN with k = 5 as my final model. I will train it with the whole training set (no cross-validation) and then run it on the test set and assess how well it preforms on the test set, which I have not touched at all yet. I set this test set aside for this purpose; to be able to accurately assess the preformance of my chosen model on a set of data the model has never seen before
+
+```{r}
+library(class)
+#Grabbing features and target from my test set I previously had defined and set aside
+
+test_y = test[c("Level")]
+test_x = test[c("Coughing.of.Blood","Obesity","Passive.Smoker","Fatigue")]
+
+cl = train_y[,1] #Extracting out the classes
+predict.knn_final = knn(train = train_x, test = test_x, cl = cl, k = 5) #fitting knn with k = 5
+```
+
+```{r}
+cl_test = test_y[,1]
+mean(as.character(cl_test) != as.character(predict.knn_final)) #misclassification rate for my final model
+```
+
+
+```{r}
+table(cl_test,predict.knn_final) #confusion matrix for my final predictions and test set
+```
+
+Looking at the misclassification rate and the confusion matrix it seems that this model has preformed perfectly on the test set. The misclassification rate is 0 and there are no points incorrectly represented in the confusion matrix. 
 
 #Section VII: Conclusion
+
+In this project I aimed to predict cancer Level using the features Coughing.of.Blood, Obesity, Passive.Smoker, and Fatigue. These were a subset of the original 24 features that were given to us. This data was already very clean when provided which facilitated the process of feature selection. I chose this subset by looking at a correlation plot of the features with my target, Level. I was able remove some features that were not correlated at all or only very slightly with Level. I then used RandomForest and analyzed the importance value of each feature in this method. This gave me my final subset of features. I then split the data into my training and testing subsets to transistion into model construction and selection. The three models I chose to investigate were LDA, QDA, and KNN. These were the three classification models we spent the most time discussing in class. To choose between these three models I used 5-fold cross validation on the training set to get a better idea of which model would preform the best on my set aside test set. After running and assessing each model, KNN with k = 5 preformed the best, with the lowest average misclassification rate of 0.01375. I then proceeded to run this model on my test data and got a misclassification rate of 0. I saw no evidence that this model overfit the data since these preformance measures are reported for a test set that was held out. Additionally our data set here was rather small, with only 1000 exmaples. To correctly assess the reliability of a model for this objective there would need to be a lot more data. Overall this project shows that in order to construct a model with very good preformance, a lot of preprocessing and model selection needs to be done prior to using one's test set. 
 
 
 
